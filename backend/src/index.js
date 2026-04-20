@@ -20,6 +20,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5174',
   'http://localhost:3001',
   'https://darkgrey-porpoise-284218.hostingersite.com',
+  'https://virtual.reviewlikeapro.com',
 ];
 
 app.use(
