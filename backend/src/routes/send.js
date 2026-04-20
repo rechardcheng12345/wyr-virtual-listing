@@ -4,6 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from '../db/connection.js';
 import { keyFromUrl, getPresignedDownloadUrl } from '../services/s3.js';
+import {
+  buildHistoryItems,
+  createEmailHistory,
+  markEmailHistoryStatus,
+} from '../services/emailHistory.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -95,8 +100,9 @@ function buildEmailHtml(rows) {
 }
 
 router.post('/', async (req, res) => {
+  let historyId = null;
   try {
-    const { listing_ids, email } = req.body;
+    const { listing_ids, email, delivery_method = 'presign_url' } = req.body;
 
     if (!listing_ids || !Array.isArray(listing_ids) || listing_ids.length === 0) {
       return res.status(400).json({ error: 'listing_ids must be a non-empty array' });
@@ -110,6 +116,7 @@ router.post('/', async (req, res) => {
     );
     const listings = rows;
 
+    const downloadUrlsByListingId = new Map();
     const rowsForEmail = await Promise.all(
       listings.map(async (l) => {
         let url = null;
@@ -125,9 +132,17 @@ router.post('/', async (req, res) => {
             );
           }
         }
+        downloadUrlsByListingId.set(l.id, url);
         return { name: l.product_name, url };
       })
     );
+
+    const historyItems = buildHistoryItems(listings, downloadUrlsByListingId);
+    historyId = await createEmailHistory({
+      email,
+      deliveryMethod: delivery_method,
+      items: historyItems,
+    });
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -153,9 +168,18 @@ router.post('/', async (req, res) => {
       ],
     });
 
-    res.json({ message: 'Email sent successfully' });
+    await markEmailHistoryStatus(historyId, 'sent');
+
+    res.json({ message: 'Email sent successfully', history_id: historyId });
   } catch (err) {
     console.error(err);
+    if (historyId) {
+      try {
+        await markEmailHistoryStatus(historyId, 'failed', err.message);
+      } catch (historyErr) {
+        console.error(historyErr);
+      }
+    }
     res.status(500).json({ error: 'Failed to send email' });
   }
 });

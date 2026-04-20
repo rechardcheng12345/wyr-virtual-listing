@@ -12,10 +12,136 @@ body {
 }
 
 /* ── Layout ──────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
 .app-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
   padding: 24px;
+}
+
+.sidebar {
+  width: 240px;
+  flex: 0 0 240px;
+  background: #111827;
+  color: #fff;
+  padding: 20px 14px;
+  position: relative;
+  transition: width 0.2s ease, flex-basis 0.2s ease;
+}
+
+.sidebar.collapsed {
+  width: 76px;
+  flex-basis: 76px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar-brand img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.sidebar-label {
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, width 0.2s ease;
+}
+
+.sidebar.collapsed .sidebar-label {
+  width: 0;
+  opacity: 0;
+}
+
+.sidebar-toggle {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: #374151;
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover {
+  background: #4b5563;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  margin-left: 0;
+  position: absolute;
+  top: 56px;
+  left: 48px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-nav button {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  color: #d1d5db;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-nav button:hover,
+.sidebar-nav button.active {
+  background: #374151;
+  color: #fff;
+}
+
+.sidebar-icon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sidebar.collapsed .sidebar-nav button {
+  justify-content: center;
+  padding: 10px 8px;
 }
 
 /* ── Header ──────────────────────────────────────── */
@@ -195,6 +321,58 @@ tbody td {
 .icon-btn.edit:hover { color: #4f46e5; }
 .icon-btn.view:hover { color: #10b981; }
 
+.page-heading {
+  margin-bottom: 16px;
+}
+
+.page-heading h2 {
+  font-size: 1.15rem;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.page-heading p,
+.muted-text {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pill.sent {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill.failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pill.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.history-items {
+  margin-top: 18px;
+}
+
+.history-items h3 {
+  font-size: 0.95rem;
+  color: #1a202c;
+  margin-bottom: 10px;
+}
+
 .empty-row td {
   text-align: center;
   padding: 48px;
@@ -223,6 +401,10 @@ tbody td {
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   animation: modal-in 0.2s ease;
+}
+
+.modal-wide {
+  max-width: 760px;
 }
 
 @keyframes modal-in {
@@ -448,4 +630,53 @@ input[type="checkbox"] {
   font-size: 0.88rem;
   color: #4338ca;
   font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .sidebar.collapsed {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .sidebar.collapsed .sidebar-brand {
+    justify-content: flex-start;
+    padding: 0 8px 18px;
+  }
+
+  .sidebar.collapsed .sidebar-label {
+    width: auto;
+    opacity: 1;
+  }
+
+  .sidebar.collapsed .sidebar-toggle {
+    margin-left: auto;
+    position: static;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+  }
+
+  .sidebar.collapsed .sidebar-nav {
+    display: none;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+  }
 }

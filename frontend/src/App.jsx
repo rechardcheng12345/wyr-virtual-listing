@@ -6,6 +6,7 @@ import DetailsModal from './components/DetailsModal';
 import SendModal from './components/SendModal';
 import ConfirmModal from './components/ConfirmModal';
 import LoginPage from './components/LoginPage';
+import EmailHistoryPage from './components/EmailHistoryPage';
 import { filterListingsByText } from './utils/filterListings';
 import './styles/global.css';
 
@@ -73,6 +74,8 @@ function MainApp({ user, onLogout }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [activePage, setActivePage] = useState('virtual-listing');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [toast, setToast] = useState(null);
 
@@ -186,40 +189,78 @@ function MainApp({ user, onLogout }) {
   const hasSearch = searchText.trim().length > 0;
 
   return (
-    <div className="app-container">
-      <div className="header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.jpeg" alt="WYR" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8 }} />
-          <h1>WYR Virtual Listing</h1>
-        </div>
-        <div className="header-actions">
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Hi, {user.username}</span>
+    <div className="app-shell">
+      <aside className={`sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
+        <div className="sidebar-brand">
+          <img src="/logo.jpeg" alt="WYR" />
+          <span className="sidebar-label">WYR</span>
           <button
-            className="btn btn-secondary"
-            onClick={onLogout}
-            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+            className="sidebar-toggle"
+            type="button"
+            onClick={() => setSidebarCollapsed((prev) => !prev)}
+            aria-label={sidebarCollapsed ? 'Expand menu' : 'Collapse menu'}
+            title={sidebarCollapsed ? 'Expand menu' : 'Collapse menu'}
           >
-            Logout
-          </button>
-          {someSelected && (
-            <>
-              <button className="btn btn-send" onClick={() => setShowSend(true)}>
-                <IconSend />
-                To Send ({selectedIds.size})
-              </button>
-              <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>
-                <IconTrash />
-                Delete ({selectedIds.size})
-              </button>
-            </>
-          )}
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-            <IconPlus />
-            Add Product
+            {sidebarCollapsed ? '›' : '‹'}
           </button>
         </div>
-      </div>
+        <nav className="sidebar-nav">
+          <button
+            className={activePage === 'virtual-listing' ? 'active' : ''}
+            onClick={() => setActivePage('virtual-listing')}
+            title="Virtual Listing"
+          >
+            <span className="sidebar-icon">VL</span>
+            <span className="sidebar-label">Virtual Listing</span>
+          </button>
+          <button
+            className={activePage === 'email-history' ? 'active' : ''}
+            onClick={() => setActivePage('email-history')}
+            title="Email History"
+          >
+            <span className="sidebar-icon">EH</span>
+            <span className="sidebar-label">Email History</span>
+          </button>
+        </nav>
+      </aside>
 
+      <main className="app-container">
+        <div className="header">
+          <div>
+            <h1>{activePage === 'virtual-listing' ? 'Virtual Listing' : 'Email History'}</h1>
+          </div>
+          <div className="header-actions">
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Hi, {user.username}</span>
+            <button
+              className="btn btn-secondary"
+              onClick={onLogout}
+              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+            >
+              Logout
+            </button>
+            {activePage === 'virtual-listing' && someSelected && (
+              <>
+                <button className="btn btn-send" onClick={() => setShowSend(true)}>
+                  <IconSend />
+                  To Send ({selectedIds.size})
+                </button>
+                <button className="btn btn-danger" onClick={() => setShowDeleteConfirm(true)}>
+                  <IconTrash />
+                  Delete ({selectedIds.size})
+                </button>
+              </>
+            )}
+            {activePage === 'virtual-listing' && (
+              <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+                <IconPlus />
+                Add Product
+              </button>
+            )}
+          </div>
+        </div>
+
+        {activePage === 'virtual-listing' ? (
+          <>
       {someSelected && (
         <div className="selection-bar">
           {selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected
@@ -239,7 +280,7 @@ function MainApp({ user, onLogout }) {
             type="search"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder=""
+            placeholder="Search by product name or SKU"
           />
         </label>
       </div>
@@ -380,6 +421,11 @@ function MainApp({ user, onLogout }) {
       {toast && (
         <div className={`toast ${toast.type}`}>{toast.message}</div>
       )}
+          </>
+        ) : (
+          <EmailHistoryPage />
+        )}
+      </main>
     </div>
   );
 }

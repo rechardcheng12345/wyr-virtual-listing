@@ -65,7 +65,7 @@ export default function SendModal({ selectedIds, onClose, onSent }) {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="recipient@example.com"
+              placeholder=""
             />
           </div>
 
