@@ -83,6 +83,42 @@ body {
 .btn-send:hover:not(:disabled) { background: #059669; }
 
 /* ── Table ───────────────────────────────────────── */
+.listing-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.search-field {
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.search-field span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.search-field input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1a202c;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-field input:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+}
+
 .table-wrapper {
   background: #fff;
   border-radius: 12px;

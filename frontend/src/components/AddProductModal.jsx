@@ -4,9 +4,6 @@ import axios from 'axios';
 const INITIAL = {
   sku: '',
   product_name: '',
-  product_format: '',
-  url_link: '',
-  size: '',
 };
 
 export default function AddProductModal({ onClose, onAdded }) {
@@ -90,33 +87,6 @@ export default function AddProductModal({ onClose, onAdded }) {
             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
               Spaces will be replaced with underscores in the filename.
             </span>
-          </div>
-
-          <div className="form-group">
-            <label>Product Format</label>
-            <input
-              value={form.product_format}
-              onChange={(e) => setForm({ ...form, product_format: e.target.value })}
-              placeholder="e.g. PDF, ZIP, MP4"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>URL Link</label>
-            <input
-              value={form.url_link}
-              onChange={(e) => setForm({ ...form, url_link: e.target.value })}
-              placeholder="https://..."
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Size</label>
-            <input
-              value={form.size}
-              onChange={(e) => setForm({ ...form, size: e.target.value })}
-              placeholder="e.g. 1.2 GB, 500 MB"
-            />
           </div>
 
           <div className="form-group">
