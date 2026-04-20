@@ -5,6 +5,7 @@ import EditProductModal from './components/EditProductModal';
 import DetailsModal from './components/DetailsModal';
 import SendModal from './components/SendModal';
 import ConfirmModal from './components/ConfirmModal';
+import LoginPage from './components/LoginPage';
 import './styles/global.css';
 
 const IconEdit = () => (
@@ -44,6 +45,30 @@ const IconTrash = () => (
 );
 
 export default function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem('vl_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  if (!user) {
+    return (
+      <LoginPage
+        onLoggedIn={(u) => {
+          localStorage.setItem('vl_user', JSON.stringify(u));
+          setUser(u);
+        }}
+      />
+    );
+  }
+
+  return <MainApp user={user} onLogout={() => { localStorage.removeItem('vl_user'); setUser(null); }} />;
+}
+
+function MainApp({ user, onLogout }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -148,8 +173,19 @@ export default function App() {
   return (
     <div className="app-container">
       <div className="header">
-        <h1>Virtual Listing</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/logo.jpeg" alt="WYR" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 8 }} />
+          <h1>WYR Virtual Listing</h1>
+        </div>
         <div className="header-actions">
+          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Hi, {user.username}</span>
+          <button
+            className="btn btn-secondary"
+            onClick={onLogout}
+            style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+          >
+            Logout
+          </button>
           {someSelected && (
             <>
               <button className="btn btn-send" onClick={() => setShowSend(true)}>

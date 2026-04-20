@@ -6,7 +6,6 @@
   "main": "backend/src/index.js",
   "scripts": {
     "start": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
-    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "server:dev": "node --watch backend/src/index.js",
     "server:start": "node backend/src/index.js",
     "client:dev": "cd frontend && npm run dev",
@@ -16,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1032.0",
     "@aws-sdk/s3-request-presigner": "^3.1032.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
