@@ -75,8 +75,9 @@ function MainApp({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [activePage, setActivePage] = useState('virtual-listing');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
   const [toast, setToast] = useState(null);
 
   const [showAdd, setShowAdd] = useState(false);
@@ -117,18 +118,26 @@ function MainApp({ user, onLogout }) {
     [listings, searchText]
   );
 
-  const toggleSelectAll = () => {
-    const visibleIds = filteredListings.map((l) => l.id);
-    if (visibleIds.length === 0) return;
+  const ITEMS_PER_PAGE = 25;
+  const totalPages = Math.max(1, Math.ceil(filteredListings.length / ITEMS_PER_PAGE));
+  const paginatedListings = filteredListings.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-    if (visibleIds.every((id) => selectedIds.has(id))) {
+  useEffect(() => { setCurrentPage(1); }, [searchText]);
+
+  const toggleSelectAll = () => {
+    const pageIds = paginatedListings.map((l) => l.id);
+    if (pageIds.length === 0) return;
+    if (pageIds.every((id) => selectedIds.has(id))) {
       setSelectedIds((prev) => {
         const next = new Set(prev);
-        visibleIds.forEach((id) => next.delete(id));
+        pageIds.forEach((id) => next.delete(id));
         return next;
       });
     } else {
-      setSelectedIds((prev) => new Set([...prev, ...visibleIds]));
+      setSelectedIds((prev) => new Set([...prev, ...pageIds]));
     }
   };
 
@@ -184,7 +193,7 @@ function MainApp({ user, onLogout }) {
     .filter((l) => selectedIds.has(l.id))
     .map((l) => l.product_name);
 
-  const allSelected = filteredListings.length > 0 && filteredListings.every((l) => selectedIds.has(l.id));
+  const allSelected = paginatedListings.length > 0 && paginatedListings.every((l) => selectedIds.has(l.id));
   const someSelected = selectedIds.size > 0;
   const hasSearch = searchText.trim().length > 0;
 
@@ -304,22 +313,22 @@ function MainApp({ user, onLogout }) {
                 </th>
                 <th>SKU</th>
                 <th>Product Name</th>
-                <th>Product Format</th>
-                <th>URL Link</th>
-                <th>Size</th>
+                <th className="col-hide-mobile">Product Format</th>
+                <th className="col-hide-mobile">URL Link</th>
+                <th className="col-hide-mobile">Size</th>
                 <th>Created Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredListings.length === 0 ? (
+              {paginatedListings.length === 0 ? (
                 <tr className="empty-row">
                   <td colSpan={8}>
                     {hasSearch ? 'No listings match your search.' : 'No listings yet. Click "Add Product" to get started.'}
                   </td>
                 </tr>
               ) : (
-                filteredListings.map((l) => (
+                paginatedListings.map((l) => (
                   <tr key={l.id} className={selectedIds.has(l.id) ? 'selected' : ''}>
                     <td>
                       <input
@@ -330,15 +339,15 @@ function MainApp({ user, onLogout }) {
                     </td>
                     <td>{l.sku}</td>
                     <td style={{ fontWeight: 500 }}>{l.product_name}</td>
-                    <td>{l.product_format ?? '—'}</td>
-                    <td className="cell-link">
+                    <td className="col-hide-mobile">{l.product_format ?? '—'}</td>
+                    <td className="cell-link col-hide-mobile">
                       {l.url_link ? (
                         <a href={l.url_link} target="_blank" rel="noreferrer" title={l.url_link}>
                           {l.url_link}
                         </a>
                       ) : '—'}
                     </td>
-                    <td>{l.size ?? '—'}</td>
+                    <td className="col-hide-mobile">{l.size ?? '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {new Date(l.created_date).toLocaleDateString()}
                     </td>
@@ -367,6 +376,59 @@ function MainApp({ user, onLogout }) {
           </table>
         )}
       </div>
+
+      {filteredListings.length > 0 && (
+        <div className="pagination">
+          <span className="pagination-info">
+            {filteredListings.length === 0 ? '0' : (currentPage - 1) * ITEMS_PER_PAGE + 1}–
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredListings.length)} of {filteredListings.length} items
+          </span>
+          <div className="pagination-controls">
+            <button
+              className="page-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+              aria-label="First page"
+            >«</button>
+            <button
+              className="page-btn"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              aria-label="Previous page"
+            >‹</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === '...' ? (
+                  <span key={`ellipsis-${i}`} className="page-ellipsis">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    className={`page-btn${p === currentPage ? ' active' : ''}`}
+                    onClick={() => setCurrentPage(p)}
+                  >{p}</button>
+                )
+              )}
+            <button
+              className="page-btn"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              aria-label="Next page"
+            >›</button>
+            <button
+              className="page-btn"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+              aria-label="Last page"
+            >»</button>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <AddProductModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />
