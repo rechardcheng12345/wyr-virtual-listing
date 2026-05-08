@@ -46,6 +46,14 @@ const IconTrash = () => (
   </svg>
 );
 
+const IconMenu = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
+
 export default function App() {
   const [user, setUser] = useState(() => {
     try {
@@ -199,6 +207,9 @@ function MainApp({ user, onLogout }) {
 
   return (
     <div className="app-shell">
+      {!sidebarCollapsed && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarCollapsed(true)} />
+      )}
       <aside className={`sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
         <div className="sidebar-brand">
           <img src="/logo.jpeg" alt="WYR" />
@@ -216,7 +227,7 @@ function MainApp({ user, onLogout }) {
         <nav className="sidebar-nav">
           <button
             className={activePage === 'virtual-listing' ? 'active' : ''}
-            onClick={() => setActivePage('virtual-listing')}
+            onClick={() => { setActivePage('virtual-listing'); setSidebarCollapsed(true); }}
             title="Virtual Listing"
           >
             <span className="sidebar-icon">VL</span>
@@ -224,7 +235,7 @@ function MainApp({ user, onLogout }) {
           </button>
           <button
             className={activePage === 'email-history' ? 'active' : ''}
-            onClick={() => setActivePage('email-history')}
+            onClick={() => { setActivePage('email-history'); setSidebarCollapsed(true); }}
             title="Email History"
           >
             <span className="sidebar-icon">EH</span>
@@ -235,7 +246,14 @@ function MainApp({ user, onLogout }) {
 
       <main className="app-container">
         <div className="header">
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              className="icon-btn mobile-menu-btn"
+              onClick={() => setSidebarCollapsed(false)}
+              aria-label="Open menu"
+            >
+              <IconMenu />
+            </button>
             <h1>{activePage === 'virtual-listing' ? 'Virtual Listing' : 'Email History'}</h1>
           </div>
           <div className="header-actions">
