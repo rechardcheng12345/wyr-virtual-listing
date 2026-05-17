@@ -2,7 +2,14 @@ import { Router } from 'express';
 import path from 'path';
 import pool from '../db/connection.js';
 import { upload } from '../middleware/upload.js';
-import { uploadToS3, deleteFromS3, keyFromUrl, getPresignedDownloadUrl } from '../services/s3.js';
+import { uploadToS3, deleteFromS3, keyFromUrl, buildObjectUrl } from '../services/s3.js';
+
+function formatSku(sku) {
+  return sku
+    .split(' ')
+    .map(word => word.charAt(0).toLowerCase() + word.slice(1))
+    .join('_');
+}
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -56,6 +63,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'sku and product_name are required' });
     }
 
+    const formattedSku = formatSku(sku);
     const safeName = product_name.replace(/\s+/g, '_');
 
     let file_path = null;
@@ -66,14 +74,14 @@ router.post('/', upload.single('file'), async (req, res) => {
       const ext = path.extname(req.file.originalname);
       const key = `listings/${safeName}_${Date.now()}${ext}`;
       file_path = await uploadToS3(key, req.file.buffer, req.file.mimetype);
-      final_url_link = await getPresignedDownloadUrl(key, `${safeName}${ext}`);
+      final_url_link = buildObjectUrl(key);
       final_size = formatFileSize(req.file.size);
       final_format = ext.replace(/^\./, '').toUpperCase() || null;
     }
 
     const [result] = await pool.execute(
       'INSERT INTO listings (sku, product_name, product_format, url_link, size, file_path) VALUES (?, ?, ?, ?, ?, ?)',
-      [sku, safeName, final_format, final_url_link, final_size, file_path]
+      [formattedSku, safeName, final_format, final_url_link, final_size, file_path]
     );
 
     const [newRows] = await pool.execute('SELECT * FROM listings WHERE id = ?', [
@@ -101,6 +109,7 @@ router.put('/:id', upload.single('file'), async (req, res) => {
     const existing = existingRows[0];
 
     const { sku, product_name, product_format, url_link, size } = req.body;
+    const formattedSku = formatSku(sku);
     const safeName = product_name.replace(/\s+/g, '_');
 
     let file_path = existing.file_path;
@@ -117,14 +126,14 @@ router.put('/:id', upload.single('file'), async (req, res) => {
       }
 
       file_path = await uploadToS3(key, req.file.buffer, req.file.mimetype);
-      final_url_link = await getPresignedDownloadUrl(key, `${safeName}${ext}`);
+      final_url_link = buildObjectUrl(key);
       final_size = formatFileSize(req.file.size);
       final_format = ext.replace(/^\./, '').toUpperCase() || null;
     }
 
     await pool.execute(
       'UPDATE listings SET sku = ?, product_name = ?, product_format = ?, url_link = ?, size = ?, file_path = ? WHERE id = ?',
-      [sku, safeName, final_format, final_url_link, final_size, file_path, req.params.id]
+      [formattedSku, safeName, final_format, final_url_link, final_size, file_path, req.params.id]
     );
 
     const [updatedRows] = await pool.execute(
