@@ -8,6 +8,7 @@ export default function EditProductModal({ listing, onClose, onUpdated }) {
     product_format: listing.product_format ?? '',
     url_link: listing.url_link ?? '',
     size: listing.size ?? '',
+    remarks: listing.remarks ?? '',
   });
   const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -109,6 +110,17 @@ export default function EditProductModal({ listing, onClose, onUpdated }) {
             <input
               value={form.size}
               onChange={(e) => setForm({ ...form, size: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Remarks</label>
+            <textarea
+              value={form.remarks}
+              onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+              placeholder="Optional notes or remarks"
+              rows={3}
+              style={{ resize: 'vertical' }}
             />
           </div>
 

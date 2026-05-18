@@ -41,6 +41,9 @@ export default function DetailsModal({ listing, onClose }) {
             <span className="detail-label">File Path</span>
             <span className="detail-value">{fmt(listing.file_path)}</span>
 
+            <span className="detail-label">Remarks</span>
+            <span className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{fmt(listing.remarks)}</span>
+
             <span className="detail-label">Created</span>
             <span className="detail-value">{createdAt}</span>
 

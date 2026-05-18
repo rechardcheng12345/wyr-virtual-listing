@@ -15,11 +15,15 @@ CREATE TABLE IF NOT EXISTS listings (
   url_link      TEXT          DEFAULT NULL,
   size          VARCHAR(50)   DEFAULT NULL,
   file_path     TEXT          DEFAULT NULL,
+  remarks       TEXT          DEFAULT NULL,
   created_date  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_sku (sku)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Run this on existing databases to add the remarks column:
+-- ALTER TABLE listings ADD COLUMN remarks TEXT DEFAULT NULL AFTER file_path;
 
 CREATE TABLE IF NOT EXISTS users (
   id            INT           NOT NULL AUTO_INCREMENT,

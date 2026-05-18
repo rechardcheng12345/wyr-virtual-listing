@@ -2,7 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import pool from '../db/connection.js';
 import { upload } from '../middleware/upload.js';
-import { uploadToS3, deleteFromS3, keyFromUrl, buildObjectUrl } from '../services/s3.js';
+import { uploadToS3, deleteFromS3, keyFromUrl, getPresignedDownloadUrl } from '../services/s3.js';
 
 function formatSku(sku) {
   return sku
@@ -54,10 +54,31 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET file redirect — generates a fresh presigned download URL on every click
+router.get('/:id/file', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT file_path, product_name FROM listings WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+
+    const { file_path, product_name } = rows[0];
+    if (!file_path) return res.status(404).json({ error: 'No file attached to this listing' });
+
+    const key = keyFromUrl(file_path);
+    if (!key) return res.status(400).json({ error: 'Invalid file path' });
+
+    const filename = `${product_name}${path.extname(key)}`;
+    const presignedUrl = await getPresignedDownloadUrl(key, filename);
+    res.redirect(302, presignedUrl);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate download URL' });
+  }
+});
+
 // POST create listing
 router.post('/', upload.single('file'), async (req, res) => {
   try {
-    const { sku, product_name, product_format, url_link, size } = req.body;
+    const { sku, product_name, product_format, url_link, size, remarks } = req.body;
 
     if (!sku || !product_name) {
       return res.status(400).json({ error: 'sku and product_name are required' });
@@ -74,15 +95,19 @@ router.post('/', upload.single('file'), async (req, res) => {
       const ext = path.extname(req.file.originalname);
       const key = `listings/${safeName}_${Date.now()}${ext}`;
       file_path = await uploadToS3(key, req.file.buffer, req.file.mimetype);
-      final_url_link = buildObjectUrl(key);
       final_size = formatFileSize(req.file.size);
       final_format = ext.replace(/^\./, '').toUpperCase() || null;
     }
 
     const [result] = await pool.execute(
-      'INSERT INTO listings (sku, product_name, product_format, url_link, size, file_path) VALUES (?, ?, ?, ?, ?, ?)',
-      [formattedSku, safeName, final_format, final_url_link, final_size, file_path]
+      'INSERT INTO listings (sku, product_name, product_format, url_link, size, file_path, remarks) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [formattedSku, safeName, final_format, final_url_link, final_size, file_path, remarks || null]
     );
+
+    if (req.file) {
+      const proxyUrl = `/api/listings/${result.insertId}/file`;
+      await pool.execute('UPDATE listings SET url_link = ? WHERE id = ?', [proxyUrl, result.insertId]);
+    }
 
     const [newRows] = await pool.execute('SELECT * FROM listings WHERE id = ?', [
       result.insertId,
@@ -108,7 +133,7 @@ router.put('/:id', upload.single('file'), async (req, res) => {
     }
     const existing = existingRows[0];
 
-    const { sku, product_name, product_format, url_link, size } = req.body;
+    const { sku, product_name, product_format, url_link, size, remarks } = req.body;
     const formattedSku = formatSku(sku);
     const safeName = product_name.replace(/\s+/g, '_');
 
@@ -116,6 +141,7 @@ router.put('/:id', upload.single('file'), async (req, res) => {
     let final_url_link = url_link ?? existing.url_link ?? null;
     let final_size = size ?? existing.size ?? null;
     let final_format = product_format ?? existing.product_format ?? null;
+    const final_remarks = remarks !== undefined ? (remarks || null) : existing.remarks ?? null;
     if (req.file) {
       const ext = path.extname(req.file.originalname);
       const key = `listings/${safeName}_${Date.now()}${ext}`;
@@ -126,14 +152,14 @@ router.put('/:id', upload.single('file'), async (req, res) => {
       }
 
       file_path = await uploadToS3(key, req.file.buffer, req.file.mimetype);
-      final_url_link = buildObjectUrl(key);
+      final_url_link = `/api/listings/${req.params.id}/file`;
       final_size = formatFileSize(req.file.size);
       final_format = ext.replace(/^\./, '').toUpperCase() || null;
     }
 
     await pool.execute(
-      'UPDATE listings SET sku = ?, product_name = ?, product_format = ?, url_link = ?, size = ?, file_path = ? WHERE id = ?',
-      [formattedSku, safeName, final_format, final_url_link, final_size, file_path, req.params.id]
+      'UPDATE listings SET sku = ?, product_name = ?, product_format = ?, url_link = ?, size = ?, file_path = ?, remarks = ? WHERE id = ?',
+      [formattedSku, safeName, final_format, final_url_link, final_size, file_path, final_remarks, req.params.id]
     );
 
     const [updatedRows] = await pool.execute(

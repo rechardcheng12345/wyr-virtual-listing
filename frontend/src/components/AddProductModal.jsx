@@ -4,6 +4,7 @@ import axios from 'axios';
 const INITIAL = {
   sku: '',
   product_name: '',
+  remarks: '',
 };
 
 export default function AddProductModal({ onClose, onAdded }) {
@@ -87,6 +88,17 @@ export default function AddProductModal({ onClose, onAdded }) {
             <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
               Spaces will be replaced with underscores in the filename.
             </span>
+          </div>
+
+          <div className="form-group">
+            <label>Remarks</label>
+            <textarea
+              value={form.remarks}
+              onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+              placeholder="Optional notes or remarks"
+              rows={3}
+              style={{ resize: 'vertical' }}
+            />
           </div>
 
           <div className="form-group">
