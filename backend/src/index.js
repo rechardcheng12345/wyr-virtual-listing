@@ -18,6 +18,7 @@ const PORT = process.env.BACKEND_PORT || 3001;
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5174',
+  'http://localhost:5175',
   'http://localhost:3001',
   'https://darkgrey-porpoise-284218.hostingersite.com',
   'https://virtual.reviewlikeapro.com',

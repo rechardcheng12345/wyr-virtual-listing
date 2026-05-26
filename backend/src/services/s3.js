@@ -60,7 +60,7 @@ export async function getPresignedUrl(key, expiresInSec = 3600) {
 export async function getPresignedDownloadUrl(key, filename, expiresInSec = 604800) {
   if (!bucket) throw new Error('S3_BUCKET_NAME is not configured');
   const disposition = filename
-    ? `attachment; filename="${filename.replace(/"/g, '')}"`
+    ? `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
     : 'attachment';
   return getSignedUrl(
     s3,
