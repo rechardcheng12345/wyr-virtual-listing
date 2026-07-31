@@ -17,6 +17,8 @@ const router = Router();
 const PRESIGN_EXPIRY_SECONDS = 3 * 24 * 60 * 60; // 3 days
 const LOGO_PATH = path.resolve(__dirname, '../../static/logo.jpeg');
 const LOGO_CID = 'vl-logo@virtual-listing';
+const MT4_GUIDE_PATH = path.resolve(__dirname, '../../static/import_ea_mt4.pdf');
+const MT5_GUIDE_PATH = path.resolve(__dirname, '../../static/import_ea_mt5.pdf');
 
 function escapeHtml(s) {
   return s
@@ -27,7 +29,7 @@ function escapeHtml(s) {
     .replace(/'/g, '&#39;');
 }
 
-function buildEmailHtml(rows) {
+function buildEmailHtml(rows, { hasTutorialAttachment = false } = {}) {
   const tableRows = rows
     .map((r) => {
       const linkCell = r.url
@@ -84,6 +86,14 @@ function buildEmailHtml(rows) {
                 </p>
               </td>
             </tr>
+            ${hasTutorialAttachment ? `
+            <tr>
+              <td style="padding:0 32px 16px;">
+                <p style="margin:0;font-size:12px;color:#9a3412;line-height:1.6;background:#ffedd5;border-left:3px solid #fb923c;padding:10px 14px;border-radius:6px;">
+                  <strong style="color:#c2410c;">Tip:</strong> We've also attached a quick step-by-step guide to help you import the EA file into MT4 / MT5 — please feel free to check the attachment for reference.
+                </p>
+              </td>
+            </tr>` : ''}
             <tr>
               <td align="center" style="padding:16px 24px 32px;border-top:1px solid #f1f5f9;">
                 <p style="margin:0;font-size:12px;color:#94a3b8;">
@@ -137,6 +147,14 @@ router.post('/', async (req, res) => {
       })
     );
 
+    let needsMt4Guide = false;
+    let needsMt5Guide = false;
+    for (const l of listings) {
+      const name = (l.product_name || '').toLowerCase();
+      if (name.includes('ea') && name.includes('mt4')) needsMt4Guide = true;
+      if (name.includes('ea') && name.includes('mt5')) needsMt5Guide = true;
+    }
+
     const historyItems = buildHistoryItems(listings, downloadUrlsByListingId);
     historyId = await createEmailHistory({
       email,
@@ -154,18 +172,28 @@ router.post('/', async (req, res) => {
       },
     });
 
+    const attachments = [
+      {
+        filename: 'logo.jpeg',
+        path: LOGO_PATH,
+        cid: LOGO_CID,
+      },
+    ];
+    if (needsMt4Guide) {
+      attachments.push({ filename: 'import_ea_mt4.pdf', path: MT4_GUIDE_PATH });
+    }
+    if (needsMt5Guide) {
+      attachments.push({ filename: 'import_ea_mt5.pdf', path: MT5_GUIDE_PATH });
+    }
+
     await transporter.sendMail({
       from: process.env.SMTP_USER,
       to: email,
       subject: 'Thank you for your purchase – Your download links',
-      html: buildEmailHtml(rowsForEmail),
-      attachments: [
-        {
-          filename: 'logo.jpeg',
-          path: LOGO_PATH,
-          cid: LOGO_CID,
-        },
-      ],
+      html: buildEmailHtml(rowsForEmail, {
+        hasTutorialAttachment: needsMt4Guide || needsMt5Guide,
+      }),
+      attachments,
     });
 
     await markEmailHistoryStatus(historyId, 'sent');
