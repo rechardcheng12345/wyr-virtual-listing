@@ -161,10 +161,17 @@ function MainApp({ user, onLogout }) {
     showToast(`"${listing.product_name}" updated successfully.`);
   };
 
-  const handleSent = () => {
+  const handleSent = async () => {
     setShowSend(false);
     setSelectedIds(new Set());
-    showToast('Email sent successfully.');
+    try {
+      await navigator.clipboard.writeText(
+        'Hi Boss, the email has been sent successfully. You may download the file from your inbox, or please check your spam/junk folder if it is not there.'
+      );
+      showToast('Email sent successfully. Message copied to clipboard.');
+    } catch {
+      showToast('Email sent successfully.');
+    }
   };
 
   const confirmDeleteSelected = async () => {
