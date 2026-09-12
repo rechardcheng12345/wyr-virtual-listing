@@ -9,6 +9,7 @@ import listingsRouter from './routes/listings.js';
 import sendRouter from './routes/send.js';
 import authRouter from './routes/auth.js';
 import emailHistoryRouter from './routes/emailHistory.js';
+import keyIssuerRouter from './routes/keyIssuer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -42,6 +43,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/listings', listingsRouter);
 app.use('/api/send', sendRouter);
 app.use('/api/email-history', emailHistoryRouter);
+app.use('/api/key-issuer', keyIssuerRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 

@@ -7,6 +7,7 @@ import SendModal from './components/SendModal';
 import ConfirmModal from './components/ConfirmModal';
 import LoginPage from './components/LoginPage';
 import EmailHistoryPage from './components/EmailHistoryPage';
+import KeyIssuerPage from './components/KeyIssuerPage';
 import { filterListingsByText } from './utils/filterListings';
 import './styles/global.css';
 
@@ -43,6 +44,16 @@ const IconTrash = () => (
     <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
     <path d="M10 11v6M14 11v6" />
     <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const SENT_EMAIL_MESSAGE =
+  'Hi Boss, the email has been sent successfully. You may download the file from your inbox, or please check your spam/junk folder if it is not there.';
+
+const IconCopy = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
   </svg>
 );
 
@@ -165,12 +176,19 @@ function MainApp({ user, onLogout }) {
     setShowSend(false);
     setSelectedIds(new Set());
     try {
-      await navigator.clipboard.writeText(
-        'Hi Boss, the email has been sent successfully. You may download the file from your inbox, or please check your spam/junk folder if it is not there.'
-      );
+      await navigator.clipboard.writeText(SENT_EMAIL_MESSAGE);
       showToast('Email sent successfully. Message copied to clipboard.');
     } catch {
       showToast('Email sent successfully.');
+    }
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(SENT_EMAIL_MESSAGE);
+      showToast('Message copied to clipboard.');
+    } catch {
+      showToast('Failed to copy message.', 'error');
     }
   };
 
@@ -248,6 +266,14 @@ function MainApp({ user, onLogout }) {
             <span className="sidebar-icon">EH</span>
             <span className="sidebar-label">Email History</span>
           </button>
+          <button
+            className={activePage === 'key-issuer' ? 'active' : ''}
+            onClick={() => { setActivePage('key-issuer'); setSidebarCollapsed(true); }}
+            title="Key Issuer"
+          >
+            <span className="sidebar-icon">KI</span>
+            <span className="sidebar-label">Key Issuer</span>
+          </button>
         </nav>
       </aside>
 
@@ -261,7 +287,13 @@ function MainApp({ user, onLogout }) {
             >
               <IconMenu />
             </button>
-            <h1>{activePage === 'virtual-listing' ? 'Virtual Listing' : 'Email History'}</h1>
+            <h1>
+              {activePage === 'virtual-listing'
+                ? 'Virtual Listing'
+                : activePage === 'email-history'
+                ? 'Email History'
+                : 'Key Issuer'}
+            </h1>
           </div>
           <div className="header-actions">
             <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Hi, {user.username}</span>
@@ -285,6 +317,12 @@ function MainApp({ user, onLogout }) {
               </>
             )}
             {activePage === 'virtual-listing' && (
+              <button className="btn btn-secondary" onClick={handleCopyMessage}>
+                <IconCopy />
+                Copy
+              </button>
+            )}
+            {activePage === 'virtual-listing' && (
               <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
                 <IconPlus />
                 Add Product
@@ -293,7 +331,11 @@ function MainApp({ user, onLogout }) {
           </div>
         </div>
 
-        {activePage === 'virtual-listing' ? (
+        {activePage === 'key-issuer' ? (
+          <KeyIssuerPage user={user} showToast={showToast} />
+        ) : activePage === 'email-history' ? (
+          <EmailHistoryPage />
+        ) : (
           <>
       {someSelected && (
         <div className="selection-bar">
@@ -509,8 +551,6 @@ function MainApp({ user, onLogout }) {
         <div className={`toast ${toast.type}`}>{toast.message}</div>
       )}
           </>
-        ) : (
-          <EmailHistoryPage />
         )}
       </main>
     </div>
