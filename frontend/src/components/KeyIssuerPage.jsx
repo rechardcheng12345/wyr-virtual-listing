@@ -2,12 +2,25 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { formatSingaporeDateTime } from '../utils/dateTime';
 
-const INITIAL_FORM = {
-  company: '',
-  invoice: '',
-  hardwareId: '',
-  expiryDate: '',
-};
+const DEFAULT_EXPIRY_YEARS = 50;
+
+// Today + DEFAULT_EXPIRY_YEARS as yyyyMMdd (Feb 29 rolls to Mar 1 in non-leap years)
+function defaultExpiryDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + DEFAULT_EXPIRY_YEARS);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}${mm}${dd}`;
+}
+
+function createInitialForm() {
+  return {
+    company: '',
+    invoice: '',
+    hardwareId: '',
+    expiryDate: defaultExpiryDate(),
+  };
+}
 
 const IconCalendar = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -47,7 +60,7 @@ export default function KeyIssuerPage({ user, showToast }) {
     }
   };
 
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(createInitialForm);
   const [generating, setGenerating] = useState(false);
   const [formError, setFormError] = useState('');
   const [lastIssued, setLastIssued] = useState(null);
@@ -117,7 +130,7 @@ export default function KeyIssuerPage({ user, showToast }) {
       });
       setLastIssued(data);
       setKeys((prev) => [data, ...prev]);
-      setForm(INITIAL_FORM);
+      setForm(createInitialForm());
     } catch (err) {
       setFormError(err.response?.data?.error ?? 'Failed to generate key.');
     } finally {
@@ -126,7 +139,7 @@ export default function KeyIssuerPage({ user, showToast }) {
   };
 
   const handleClear = () => {
-    setForm(INITIAL_FORM);
+    setForm(createInitialForm());
     setFormError('');
     setLastIssued(null);
   };

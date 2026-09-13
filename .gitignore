@@ -2,3 +2,13 @@ node_modules
 .env
 frontend/node_modules
 frontend/dist
+CLAUDE.md
+claude-logs/stop.json
+claude-logs/pre_tool_use.json
+claude-logs/post_tool_use.json
+claude-logs/notification.json
+claude-logs/debug.json
+.claude/settings.local.json
+logs/chat.json
+.claude/settings.local.json
+.claude/settings.local.json

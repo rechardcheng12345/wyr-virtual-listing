@@ -1,0 +1,18 @@
+[
+  {
+    "event": "completion_notification_send",
+    "message": "Work complete!",
+    "timestamp": "2026-09-13T09:39:25+08:00"
+  },
+  {
+    "error": "",
+    "event": "completion_notification_result",
+    "success": true,
+    "timestamp": "2026-09-13T09:39:26+08:00"
+  },
+  {
+    "event": "notification_start",
+    "notify": true,
+    "timestamp": "2026-09-13T09:40:26+08:00"
+  }
+]
