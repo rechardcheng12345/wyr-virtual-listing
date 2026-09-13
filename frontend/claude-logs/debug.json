@@ -14,5 +14,21 @@
     "event": "notification_start",
     "notify": true,
     "timestamp": "2026-09-13T09:40:26+08:00"
+  },
+  {
+    "event": "completion_notification_send",
+    "message": "Ready for next task!",
+    "timestamp": "2026-09-13T14:33:44+08:00"
+  },
+  {
+    "error": "",
+    "event": "completion_notification_result",
+    "success": true,
+    "timestamp": "2026-09-13T14:33:44+08:00"
+  },
+  {
+    "event": "notification_start",
+    "notify": true,
+    "timestamp": "2026-09-13T14:34:44+08:00"
   }
 ]

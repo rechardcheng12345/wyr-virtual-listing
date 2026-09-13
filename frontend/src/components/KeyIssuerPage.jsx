@@ -161,7 +161,7 @@ export default function KeyIssuerPage({ user, showToast }) {
     <>
       <div className="page-heading">
         <div>
-          <h2>Key Issuer</h2>
+          <h2>Mykad Key Issuer</h2>
           <p>Generate hardware-locked license keys and review everything issued so far.</p>
         </div>
       </div>

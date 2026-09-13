@@ -8,6 +8,7 @@ import ConfirmModal from './components/ConfirmModal';
 import LoginPage from './components/LoginPage';
 import EmailHistoryPage from './components/EmailHistoryPage';
 import KeyIssuerPage from './components/KeyIssuerPage';
+import CardCopyPage from './components/CardCopyPage';
 import { filterListingsByText } from './utils/filterListings';
 import './styles/global.css';
 
@@ -269,10 +270,18 @@ function MainApp({ user, onLogout }) {
           <button
             className={activePage === 'key-issuer' ? 'active' : ''}
             onClick={() => { setActivePage('key-issuer'); setSidebarCollapsed(true); }}
-            title="Key Issuer"
+            title="Mykad Key Issuer"
           >
             <span className="sidebar-icon">KI</span>
-            <span className="sidebar-label">Key Issuer</span>
+            <span className="sidebar-label">Mykad Key Issuer</span>
+          </button>
+          <button
+            className={activePage === 'card-copy' ? 'active' : ''}
+            onClick={() => { setActivePage('card-copy'); setSidebarCollapsed(true); }}
+            title="Card Copy Program"
+          >
+            <span className="sidebar-icon">CC</span>
+            <span className="sidebar-label">Card Copy Program</span>
           </button>
         </nav>
       </aside>
@@ -292,7 +301,9 @@ function MainApp({ user, onLogout }) {
                 ? 'Virtual Listing'
                 : activePage === 'email-history'
                 ? 'Email History'
-                : 'Key Issuer'}
+                : activePage === 'card-copy'
+                ? 'Card Copy Program'
+                : 'Mykad Key Issuer'}
             </h1>
           </div>
           <div className="header-actions">
@@ -333,6 +344,8 @@ function MainApp({ user, onLogout }) {
 
         {activePage === 'key-issuer' ? (
           <KeyIssuerPage user={user} showToast={showToast} />
+        ) : activePage === 'card-copy' ? (
+          <CardCopyPage showToast={showToast} />
         ) : activePage === 'email-history' ? (
           <EmailHistoryPage />
         ) : (
@@ -547,10 +560,11 @@ function MainApp({ user, onLogout }) {
         />
       )}
 
-      {toast && (
-        <div className={`toast ${toast.type}`}>{toast.message}</div>
-      )}
           </>
+        )}
+
+        {toast && (
+          <div className={`toast ${toast.type}`}>{toast.message}</div>
         )}
       </main>
     </div>
