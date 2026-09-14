@@ -95,6 +95,11 @@ export async function getOrderByOrderId(orderId) {
   return rows[0] ?? null;
 }
 
+export async function deleteOrder(id) {
+  const [result] = await pool.execute('DELETE FROM card_copy_orders WHERE id = ?', [id]);
+  return result.affectedRows > 0;
+}
+
 export async function updateRemark(id, remark) {
   const [result] = await pool.execute(
     'UPDATE card_copy_orders SET remark = ? WHERE id = ?',

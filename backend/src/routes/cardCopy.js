@@ -7,6 +7,7 @@ import {
   getAllOrders,
   getOrderById,
   updateRemark,
+  deleteOrder,
   refreshChipIdentities,
 } from '../services/cardCopyOrders.js';
 
@@ -129,6 +130,18 @@ router.put('/:id/remark', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update remark' });
+  }
+});
+
+// DELETE /api/card-copy/:id — remove an order (e.g. a mistake or test entry).
+router.delete('/:id', async (req, res) => {
+  try {
+    const ok = await deleteOrder(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Order not found' });
+    res.json({ message: 'Order deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 

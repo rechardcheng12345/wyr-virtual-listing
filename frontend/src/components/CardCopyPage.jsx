@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import CardCopyDetailsModal from './CardCopyDetailsModal';
+import ConfirmModal from './ConfirmModal';
 import { formatSingaporeDateTime } from '../utils/dateTime';
 
 const CLIENT_INSTRUCTIONS =
@@ -35,6 +36,8 @@ export default function CardCopyPage({ showToast }) {
   const [listError, setListError] = useState('');
   const [search, setSearch] = useState('');
   const [detailOrder, setDetailOrder] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -103,6 +106,21 @@ export default function CardCopyPage({ showToast }) {
     setRemark('');
     setFormError('');
     setEncrypted('');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/card-copy/${deleteTarget.id}`);
+      setOrders((prev) => prev.filter((o) => o.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      showToast?.('Order deleted.');
+    } catch {
+      showToast?.('Failed to delete order.', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const copyText = async (text, okMessage) => {
@@ -290,13 +308,22 @@ export default function CardCopyPage({ showToast }) {
                     <td className="col-hide-mobile">{fmt(o.tag_model)}</td>
                     <td className="col-hide-mobile">{fmt(o.remark)}</td>
                     <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                        onClick={() => setDetailOrder(o)}
-                      >
-                        View
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                          onClick={() => setDetailOrder(o)}
+                        >
+                          View
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                          onClick={() => setDeleteTarget(o)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -315,6 +342,27 @@ export default function CardCopyPage({ showToast }) {
             setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
             setDetailOrder(updated);
           }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete order?"
+          confirmLabel="Delete"
+          variant="danger"
+          busy={deleting}
+          onCancel={() => !deleting && setDeleteTarget(null)}
+          onConfirm={handleDelete}
+          message={
+            <>
+              <p style={{ margin: 0 }}>
+                Delete order <strong>{deleteTarget.order_id}</strong>?
+              </p>
+              <p style={{ margin: '12px 0 0', color: '#b91c1c', fontSize: '0.88rem' }}>
+                This removes the database record and cannot be undone.
+              </p>
+            </>
+          }
         />
       )}
     </>

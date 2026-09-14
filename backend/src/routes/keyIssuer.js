@@ -56,6 +56,19 @@ router.post('/generate', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const [result] = await pool.execute('DELETE FROM issued_keys WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Issued key not found' });
+    }
+    res.json({ message: 'Issued key deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete issued key' });
+  }
+});
+
 router.get('/:id/download', async (req, res) => {
   try {
     const [rows] = await pool.execute(

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import ConfirmModal from './ConfirmModal';
 import { formatSingaporeDateTime } from '../utils/dateTime';
 
 const DEFAULT_EXPIRY_YEARS = 50;
@@ -70,6 +71,8 @@ export default function KeyIssuerPage({ user, showToast }) {
   const [listError, setListError] = useState('');
   const [companyFilter, setCompanyFilter] = useState('');
   const [invoiceFilter, setInvoiceFilter] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchKeys = useCallback(async (company = '', invoice = '') => {
     setLoading(true);
@@ -146,6 +149,22 @@ export default function KeyIssuerPage({ user, showToast }) {
 
   const handleDownload = (id) => {
     window.open(`/api/key-issuer/${id}/download`, '_blank');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`/api/key-issuer/${deleteTarget.id}`);
+      setKeys((prev) => prev.filter((k) => k.id !== deleteTarget.id));
+      if (lastIssued?.id === deleteTarget.id) setLastIssued(null);
+      setDeleteTarget(null);
+      showToast?.('Issued key deleted.');
+    } catch {
+      showToast?.('Failed to delete issued key.', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleCopy = async (outputKey) => {
@@ -336,13 +355,22 @@ export default function KeyIssuerPage({ user, showToast }) {
                     <td>{k.issued_by ?? '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{formatSingaporeDateTime(k.issued_at)}</td>
                     <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                        onClick={() => handleDownload(k.id)}
-                      >
-                        Download
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                          onClick={() => handleDownload(k.id)}
+                        >
+                          Download
+                        </button>
+                        <button
+                          className="btn btn-danger"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                          onClick={() => setDeleteTarget(k)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -351,6 +379,28 @@ export default function KeyIssuerPage({ user, showToast }) {
           </table>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete issued key?"
+          confirmLabel="Delete"
+          variant="danger"
+          busy={deleting}
+          onCancel={() => !deleting && setDeleteTarget(null)}
+          onConfirm={handleDelete}
+          message={
+            <>
+              <p style={{ margin: 0 }}>
+                Delete the key for <strong>{deleteTarget.company}</strong> (invoice{' '}
+                <strong>{deleteTarget.invoice}</strong>)?
+              </p>
+              <p style={{ margin: '12px 0 0', color: '#b91c1c', fontSize: '0.88rem' }}>
+                This removes the database record and cannot be undone.
+              </p>
+            </>
+          }
+        />
+      )}
     </>
   );
 }
