@@ -28,5 +28,25 @@
     "scratchpad_dir": "C:\\Users\\ALANCH~1\\AppData\\Local\\Temp\\claude\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4\\scratchpad",
     "session_id": "ae6660fe-aea3-4fe2-9179-592557eb2ce4",
     "transcript_path": "C:\\Users\\alancheng\\.claude\\projects\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4.jsonl"
+  },
+  {
+    "cwd": "D:\\Github\\Virtual\\wyr-virtual-listing\\frontend",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt",
+    "prompt_id": "a408e5db-c0ed-4aea-be46-fb735accfa73",
+    "scratchpad_dir": "C:\\Users\\ALANCH~1\\AppData\\Local\\Temp\\claude\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4\\scratchpad",
+    "session_id": "ae6660fe-aea3-4fe2-9179-592557eb2ce4",
+    "transcript_path": "C:\\Users\\alancheng\\.claude\\projects\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4.jsonl"
+  },
+  {
+    "cwd": "D:\\Github\\Virtual\\wyr-virtual-listing\\frontend",
+    "hook_event_name": "Notification",
+    "message": "Claude is waiting for your input",
+    "notification_type": "idle_prompt",
+    "prompt_id": "13d12857-caeb-4492-a1e5-e21b38b1921c",
+    "scratchpad_dir": "C:\\Users\\ALANCH~1\\AppData\\Local\\Temp\\claude\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4\\scratchpad",
+    "session_id": "ae6660fe-aea3-4fe2-9179-592557eb2ce4",
+    "transcript_path": "C:\\Users\\alancheng\\.claude\\projects\\D--Github-Virtual-wyr-virtual-listing\\ae6660fe-aea3-4fe2-9179-592557eb2ce4.jsonl"
   }
 ]

@@ -10,6 +10,11 @@ import {
   deleteOrder,
   refreshChipIdentities,
 } from '../services/cardCopyOrders.js';
+import {
+  createReadRequest,
+  getRecentReadRequests,
+  getReadRequestById,
+} from '../services/cardCopyReadRequests.js';
 
 const router = Router();
 
@@ -105,6 +110,91 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+function clientIpOf(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
+  return req.socket?.remoteAddress ?? null;
+}
+
+// If CARD_COPY_INGEST_KEY is set, the reader program must send it as the
+// x-api-key header. If unset, the endpoint is open (dev / trusted network).
+function ingestAuthorized(req) {
+  const required = process.env.CARD_COPY_INGEST_KEY;
+  if (!required) return true;
+  return req.get('x-api-key') === required;
+}
+
+// POST /api/card-copy/read-requests — ingest a tag read from the client's
+// reader program. Accepts either { text } (the pasted-style dump) or the
+// structured fields { orderId, dataA, dataB, dataC, dataD, dataE }, plus an
+// optional { source } label. Runs TID identification + validation and stores it.
+router.post('/read-requests', async (req, res) => {
+  try {
+    if (!ingestAuthorized(req)) {
+      return res.status(401).json({ error: 'Invalid or missing API key' });
+    }
+
+    const { text, source } = req.body;
+    let parsed;
+    let rawText = null;
+
+    if (typeof text === 'string' && text.trim()) {
+      rawText = text;
+      parsed = parseClipboardText(text);
+    } else {
+      parsed = analyzeFields(req.body);
+      parsed.dataE = req.body.dataE ?? null;
+    }
+
+    const saved = await createReadRequest({
+      orderId: parsed.orderId || null,
+      dataA: parsed.dataA ?? null,
+      dataB: parsed.dataB ?? null,
+      dataC: parsed.dataC ?? null,
+      dataD: parsed.dataD ?? null,
+      dataE: parsed.dataE ?? null,
+      rawText,
+      tagClass: parsed.tagClass ?? null,
+      vendor: parsed.vendor ?? null,
+      tagFamily: parsed.tagFamily ?? null,
+      tagModel: parsed.tagModel ?? null,
+      modelNotes: parsed.modelNotes ?? null,
+      isValid: parsed.isValid,
+      validationMessage: parsed.validationMessage ?? null,
+      source: typeof source === 'string' ? source.slice(0, 100) : null,
+      clientIp: clientIpOf(req),
+    });
+
+    res.status(201).json(saved);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to record read request' });
+  }
+});
+
+// GET /api/card-copy/read-requests?limit=20 — recent tag reads (newest first).
+router.get('/read-requests', async (req, res) => {
+  try {
+    const rows = await getRecentReadRequests(req.query.limit ?? 20);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch read requests' });
+  }
+});
+
+// GET /api/card-copy/read-requests/:id — one read request.
+router.get('/read-requests/:id', async (req, res) => {
+  try {
+    const row = await getReadRequestById(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Read request not found' });
+    res.json(row);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch read request' });
   }
 });
 

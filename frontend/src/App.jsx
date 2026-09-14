@@ -9,6 +9,7 @@ import LoginPage from './components/LoginPage';
 import EmailHistoryPage from './components/EmailHistoryPage';
 import KeyIssuerPage from './components/KeyIssuerPage';
 import CardCopyPage from './components/CardCopyPage';
+import CardReadRequestsPage from './components/CardReadRequestsPage';
 import { filterListingsByText } from './utils/filterListings';
 import './styles/global.css';
 
@@ -283,6 +284,14 @@ function MainApp({ user, onLogout }) {
             <span className="sidebar-icon">CC</span>
             <span className="sidebar-label">Card Copy Program</span>
           </button>
+          <button
+            className={activePage === 'card-reads' ? 'active' : ''}
+            onClick={() => { setActivePage('card-reads'); setSidebarCollapsed(true); }}
+            title="Card Read Requests"
+          >
+            <span className="sidebar-icon">CR</span>
+            <span className="sidebar-label">Card Read Requests</span>
+          </button>
         </nav>
       </aside>
 
@@ -303,6 +312,8 @@ function MainApp({ user, onLogout }) {
                 ? 'Email History'
                 : activePage === 'card-copy'
                 ? 'Card Copy Program'
+                : activePage === 'card-reads'
+                ? 'Card Read Requests'
                 : 'Mykad Key Issuer'}
             </h1>
           </div>
@@ -346,6 +357,8 @@ function MainApp({ user, onLogout }) {
           <KeyIssuerPage user={user} showToast={showToast} />
         ) : activePage === 'card-copy' ? (
           <CardCopyPage showToast={showToast} />
+        ) : activePage === 'card-reads' ? (
+          <CardReadRequestsPage />
         ) : activePage === 'email-history' ? (
           <EmailHistoryPage />
         ) : (
