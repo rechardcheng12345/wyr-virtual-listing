@@ -119,12 +119,11 @@ function clientIpOf(req) {
   return req.socket?.remoteAddress ?? null;
 }
 
-// If CARD_COPY_INGEST_KEY is set, the reader program must send it as the
-// x-api-key header. If unset, the endpoint is open (dev / trusted network).
+// The reader program must send this key as the x-api-key header. Defaults to a
+// static key; CARD_COPY_INGEST_KEY in .env overrides it.
+const INGEST_KEY = process.env.CARD_COPY_INGEST_KEY || '8dge@8dge';
 function ingestAuthorized(req) {
-  const required = process.env.CARD_COPY_INGEST_KEY;
-  if (!required) return true;
-  return req.get('x-api-key') === required;
+  return req.get('x-api-key') === INGEST_KEY;
 }
 
 // POST /api/card-copy/read-requests — ingest a tag read from the client's
