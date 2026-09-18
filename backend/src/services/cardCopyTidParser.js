@@ -1,177 +1,186 @@
-// Port of the CloneCardSellerProgram TIDParser (TIDParser.cs).
-// Identifies the RFID chip make/model from the first bytes of the TID memory
-// bank (Data C). Kept behaviourally identical to the desktop app.
+// UHF Gen2 tag identify logic (from TID readout). Chip identity always comes
+// from the TID bank (Data C) — never from the EPC payload.
+//
+// The chip database lives in cardCopyChips.json (data-driven): add a row to
+// support a new chip without touching this parse code. Lookup is tiered:
+//   1. exact tidPrefix (longest-matching prefix wins)   -> matchMethod "prefix"
+//   2. else (mdid, tmn) pair                            -> matchMethod "mdid_tmn"
+//   3. else mdid only (vendor known, model unknown)     -> matchMethod "mdid"
+//   4. else nothing                                     -> matchMethod "none"
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// First 4 TID bytes (8 hex chars) identify make/model. Longer prefixes must be
-// listed before shorter ones. Sources: GS1 EPC TDS MDID/TMN layout and
-// published Impinj / Alien / NXP TID headers.
-const KNOWN_CHIPS = [
-  ['E2003411', 'Alien Technology', 'Higgs-2', 'Alien Higgs-2', '96-bit EPC, 32-bit TID'],
-  ['E2003412', 'Alien Technology', 'Higgs-3', 'Alien Higgs-3', '96-bit EPC, 512-bit User Memory'],
-  ['E2003414', 'Alien Technology', 'Higgs-4', 'Alien Higgs-4', '128-bit EPC, 128-bit User Memory'],
-  ['E2003811', 'Alien Technology', 'Higgs-EC', 'Alien Higgs-EC', '128-bit EPC, 128-bit User Memory'],
-  ['E2803821', 'Alien Technology', 'Higgs-9', 'Alien Higgs-9', '96-bit EPC, 688-bit User Memory'],
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CHIPS = JSON.parse(readFileSync(path.join(__dirname, 'cardCopyChips.json'), 'utf8'));
 
-  ['E200104', 'Impinj', 'Monza 1', 'Impinj Monza 1', '96-bit EPC, legacy'],
-  ['E200105', 'Impinj', 'Monza 1', 'Impinj Monza 1a', '96-bit EPC, legacy'],
-  ['E200107', 'Impinj', 'Monza 2', 'Impinj Monza 2', '96-bit EPC, legacy'],
-  ['E200109', 'Impinj', 'Monza 3', 'Impinj Monza 3', '96-bit EPC, legacy'],
-  ['E2801100', 'Impinj', 'Monza 4', 'Impinj Monza 4D', '128-bit EPC, 32-bit User Memory'],
-  ['E2801104', 'Impinj', 'Monza 4', 'Impinj Monza 4U', '128-bit EPC, 512-bit User Memory'],
-  ['E2801105', 'Impinj', 'Monza 4', 'Impinj Monza 4QT', '128-bit EPC, 512-bit User Memory, QT privacy'],
-  ['E280110C', 'Impinj', 'Monza 4', 'Impinj Monza 4E', '496-bit EPC, 128-bit User Memory'],
-  ['E2801114', 'Impinj', 'Monza 4', 'Impinj Monza 4i', '256-bit EPC, 480-bit User Memory'],
-  ['E2801130', 'Impinj', 'Monza 5', 'Impinj Monza 5', '128-bit EPC'],
-  ['E2801140', 'Impinj', 'Monza X', 'Impinj Monza X-2K', '2K-bit User Memory'],
-  ['E2801150', 'Impinj', 'Monza X', 'Impinj Monza X-8K', '8K-bit User Memory'],
-  ['E2801160', 'Impinj', 'Monza R6', 'Impinj Monza R6', '96-bit EPC, AutoTune'],
-  ['E2801170', 'Impinj', 'Monza R6-P', 'Impinj Monza R6-P', '96/128-bit EPC, 32/64-bit User Memory'],
-  ['E2801171', 'Impinj', 'Monza R6-A', 'Impinj Monza R6-A/R6-B', '96-bit EPC'],
-  ['E2801173', 'Impinj', 'Monza S6-C', 'Impinj Monza S6-C', 'Specialty Monza 6'],
-  ['E2801191', 'Impinj', 'M730', 'Impinj M730', '128-bit EPC'],
-  ['E2801190', 'Impinj', 'M750', 'Impinj M750', '96-bit EPC, 32-bit User Memory'],
-  ['E28011A0', 'Impinj', 'M770', 'Impinj M770', '128-bit EPC, 32-bit User Memory'],
-  ['E28011C1', 'Impinj', 'M780', 'Impinj M781', '128-bit EPC, 512-bit User Memory'],
-  ['E28011C0', 'Impinj', 'M780', 'Impinj M780', 'High-memory M780 series'],
-  ['E2801180', 'Impinj', 'M800', 'Impinj M830/M850', 'M800 series'],
-  ['E2C011A2', 'Impinj', 'M775', 'Impinj M775', 'Cryptographic M770 variant'],
+const DEFAULT_TAG_CLASS = 'GS1 EPCglobal (EPC Gen2)';
 
-  ['E2006001', 'NXP Semiconductors', 'EPC Gen2', 'NXP EPC Gen2 (legacy)', 'Legacy Class-1 Gen2'],
-  ['E2006003', 'NXP Semiconductors', 'UCODE G2XM', 'NXP UCODE G2XM', '240-bit EPC, extended memory'],
-  ['E2006004', 'NXP Semiconductors', 'UCODE G2XL', 'NXP UCODE G2XL', '240-bit EPC'],
-  ['E2006806', 'NXP Semiconductors', 'UCODE G2iL', 'NXP UCODE G2iL', '96-bit EPC'],
-  ['E2006807', 'NXP Semiconductors', 'UCODE G2iL+', 'NXP UCODE G2iL+', '96-bit EPC, enhanced range'],
-  ['E200680A', 'NXP Semiconductors', 'UCODE G2iM', 'NXP UCODE G2iM', '96-bit EPC'],
-  ['E200680B', 'NXP Semiconductors', 'UCODE G2iM+', 'NXP UCODE G2iM+', 'Enhanced G2iM'],
-  ['E200680D', 'NXP Semiconductors', 'UCODE I2C', 'NXP UCODE I2C', 'I2C interface'],
-  ['E200688D', 'NXP Semiconductors', 'UCODE I2C', 'NXP UCODE I2C', 'I2C interface'],
-  ['E2806810', 'NXP Semiconductors', 'UCODE 7', 'NXP UCODE 7', '128-bit EPC'],
-  ['E2806890', 'NXP Semiconductors', 'UCODE 7', 'NXP UCODE 7', '128-bit EPC'],
-  ['E2806891', 'NXP Semiconductors', 'UCODE 7m', 'NXP UCODE 7m', 'UCODE 7 with User Memory'],
-  ['E2806D12', 'NXP Semiconductors', 'UCODE 7xm', 'NXP UCODE 7xm', '448-bit EPC, 1K User Memory'],
-  ['E2806F12', 'NXP Semiconductors', 'UCODE 7xm', 'NXP UCODE 7xm', '448-bit EPC, 2K User Memory'],
-  ['E2806D92', 'NXP Semiconductors', 'UCODE 7xm+', 'NXP UCODE 7xm+', '448-bit EPC, 2K User Memory'],
-  ['E2806894', 'NXP Semiconductors', 'UCODE 8', 'NXP UCODE 8', '128-bit EPC'],
-  ['E2806994', 'NXP Semiconductors', 'UCODE 8m', 'NXP UCODE 8m', '96-bit EPC, 32-bit User Memory'],
-  ['E2806895', 'NXP Semiconductors', 'UCODE 9', 'NXP UCODE 9', '96-bit EPC'],
-  ['E2806995', 'NXP Semiconductors', 'UCODE 9', 'NXP UCODE 9', '96-bit EPC'],
-  ['E2806915', 'NXP Semiconductors', 'UCODE 9', 'NXP UCODE 9', '96-bit EPC'],
-  ['E2806A16', 'NXP Semiconductors', 'UCODE 9xe', 'NXP UCODE 9xe', '128-bit EPC'],
-  ['E2806A96', 'NXP Semiconductors', 'UCODE 9xe', 'NXP UCODE 9xe', '128-bit EPC'],
-  ['E2C06B12', 'NXP Semiconductors', 'UCODE DNA', 'NXP UCODE DNA', 'Cryptographic authentication'],
-  ['E2C06892', 'NXP Semiconductors', 'UCODE DNA', 'NXP UCODE DNA', 'Cryptographic authentication'],
-  ['E2C06C12', 'NXP Semiconductors', 'UCODE DNA', 'NXP UCODE DNA', 'Cryptographic authentication'],
-].map(([prefix, vendor, family, model, notes]) => ({ prefix, vendor, family, model, notes }));
+// GS1 EPC TDS Registration Authority MDID -> vendor (subset). Fills Vendor when
+// the model table misses. https://www.gs1.org/epcglobal/standards/mdid
+const MDID_VENDORS = {
+  0x001: 'Impinj',
+  0x002: 'Texas Instruments',
+  0x003: 'Alien Technology',
+  0x004: 'Intelleflex',
+  0x005: 'Atmel',
+  0x006: 'NXP Semiconductors',
+};
 
-// ISO/IEC 15963 allocation class in TID byte 0 — not an air-interface family.
-function getTagClassDescription(tagClassHex) {
-  switch (tagClassHex.toUpperCase()) {
-    case 'E0':
-      return 'ISO/IEC 15963';
-    case 'E2':
-      return 'GS1 EPCglobal (EPC Gen2)';
-    default:
-      return `Unknown allocation class (${tagClassHex})`;
+function normalizeHex(value) {
+  if (Array.isArray(value)) {
+    return value.map((b) => (b & 0xff).toString(16).padStart(2, '0')).join('').toUpperCase();
   }
+  if (value && typeof value === 'object' && typeof value.length === 'number') {
+    // Buffer / typed array
+    return Array.from(value, (b) => (b & 0xff).toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+  return String(value ?? '').replace(/\s+/g, '').toUpperCase();
 }
 
-// GS1 Gen2 TID: class E2, then X/S/F, 9-bit MDID, 12-bit TMN.
-function identifyVendorByMdid(cleanHex) {
-  if (cleanHex.length < 8 || !cleanHex.startsWith('E2')) return 'Unknown';
-  const b1 = parseInt(cleanHex.substring(2, 4), 16);
-  const b2 = parseInt(cleanHex.substring(4, 6), 16);
-  const mdid = ((b1 & 0x1f) << 4) | ((b2 >> 4) & 0x0f);
-  switch (mdid) {
-    case 0x001:
-      return 'Impinj';
-    case 0x002:
-      return 'Texas Instruments';
-    case 0x003:
-      return 'Alien Technology';
-    case 0x004:
-      return 'Intelleflex';
-    case 0x005:
-      return 'Atmel';
-    case 0x006:
-      return 'NXP Semiconductors';
-    default:
-      return 'Unknown';
+function hexToBytes(cleanHex) {
+  const n = Math.floor(cleanHex.length / 2);
+  const bytes = new Array(n);
+  for (let i = 0; i < n; i++) {
+    bytes[i] = parseInt(cleanHex.substr(i * 2, 2), 16);
   }
+  return bytes;
 }
 
-function identifyVendorFamilyModel(cleanHex) {
-  let best = null;
-  for (const chip of KNOWN_CHIPS) {
-    if (cleanHex.startsWith(chip.prefix) && (best === null || chip.prefix.length > best.prefix.length)) {
-      best = chip;
-    }
-  }
-  if (best) {
-    return { vendor: best.vendor, family: best.family, model: best.model, notes: best.notes };
-  }
-
-  const header = cleanHex.length >= 8 ? cleanHex.substring(0, 8) : cleanHex;
-  const vendor = identifyVendorByMdid(cleanHex);
-  if (vendor !== 'Unknown') {
-    return {
-      vendor,
-      family: vendor,
-      model: `${vendor} (TID: ${header})`,
-      notes: 'Known manufacturer, unrecognized model',
-    };
-  }
+function emptyResult() {
   return {
-    vendor: 'Unknown',
-    family: 'Unknown',
-    model: `Unknown (TID: ${header})`,
-    notes: 'Unrecognized manufacturer pattern',
-  };
-}
-
-export function parseTIDData(hexData) {
-  const result = {
+    // Backward-compatible fields consumed elsewhere in the app.
     tagClass: 'Unknown',
     vendor: 'Unknown',
     tagFamily: 'Unknown',
     tagModel: 'Unknown',
     modelNotes: '',
-    xtidSupported: 'No',
+    xtidSupported: 'N/A',
     isValid: false,
     errorMessage: '',
+    // Spec DTO additions.
+    errorCode: '',
+    mdid: null,
+    tmn: null,
+    tidPrefix4: '',
+    tidHex: '',
+    epcHex: null,
+    xtid: false,
+    security: false,
+    file: false,
+    matchMethod: 'none',
   };
+}
+
+function findByPrefix(cleanHex) {
+  let best = null;
+  let bestLen = -1;
+  for (const row of CHIPS) {
+    const prefix = (row.tidPrefix || '').toUpperCase();
+    if (prefix && cleanHex.startsWith(prefix) && prefix.length > bestLen) {
+      best = row;
+      bestLen = prefix.length;
+    }
+  }
+  return best;
+}
+
+function findByMdidTmn(mdid, tmn) {
+  return (
+    CHIPS.find(
+      (r) => Number.isInteger(r.mdid) && Number.isInteger(r.tmn) && r.mdid === mdid && r.tmn === tmn
+    ) || null
+  );
+}
+
+// Optional EPC bank parsing (display / sanity check only — never chip identity).
+// Common reader dump layout: CRC(2) + PC(2) + EPC(N). Returns the EPC hex.
+export function extractEpc(epcRawHex) {
+  const clean = normalizeHex(epcRawHex);
+  if (clean.length < 8) return null;
+  const bytes = hexToBytes(clean);
+  const pc = (bytes[2] << 8) | bytes[3];
+  const epcWords = (pc >> 11) & 0x1f; // PC bits 15..11 = EPC length in 16-bit words
+  const epc = clean.slice(8, 8 + epcWords * 2 * 2);
+  return epc || null;
+}
+
+// Identify a tag from its TID. `epcRawHex` is optional and used only to surface
+// the EPC payload — it never influences vendor/model.
+export function parseTIDData(hexData, epcRawHex = null) {
+  const result = emptyResult();
 
   try {
-    if (!hexData || !hexData.trim()) {
-      result.errorMessage = 'TID data is empty';
-      return result;
-    }
+    const cleanHex = normalizeHex(hexData);
+    result.tidHex = cleanHex;
+    if (epcRawHex) result.epcHex = extractEpc(epcRawHex);
 
-    const cleanHex = hexData.replace(/ /g, '').replace(/\t/g, '').toUpperCase();
-
-    if (cleanHex.includes('NO DATA') || cleanHex.includes('ACCESS DENIED')) {
-      result.errorMessage = 'TID data not accessible';
-      return result;
-    }
-
+    // Need at least 4 bytes (8 hex chars) for the TID header.
     if (cleanHex.length < 8) {
       result.errorMessage = 'TID data too short (minimum 4 bytes required)';
+      result.errorCode = 'TID_TOO_SHORT';
       return result;
     }
 
-    result.tagClass = getTagClassDescription(cleanHex.substring(0, 2));
+    const bytes = hexToBytes(cleanHex);
+    result.tidPrefix4 = cleanHex.slice(0, 8);
 
-    const secondByte = parseInt(cleanHex.substring(2, 4), 16);
-    result.xtidSupported = (secondByte & 0x80) !== 0 ? 'Yes' : 'No';
+    // Step 1 — Tag Class from the class byte tid[0].
+    if (bytes[0] !== 0xe2) {
+      result.tagClass = 'Unknown / non-E2 TID class';
+      result.errorCode = 'NON_E2_TID';
+      result.errorMessage = 'Non-E2 TID class; chip cannot be identified from TID';
+      return result; // vendor/model stay Unknown
+    }
+    result.tagClass = DEFAULT_TAG_CLASS;
 
-    const { vendor, family, model, notes } = identifyVendorFamilyModel(cleanHex);
-    result.vendor = vendor;
-    result.tagFamily = family;
-    result.tagModel = model;
-    result.modelNotes = notes;
-    result.isValid = true;
+    if (![bytes[1], bytes[2], bytes[3]].every((b) => Number.isInteger(b))) {
+      result.errorMessage = 'TID header is not valid hex';
+      result.errorCode = 'TID_INVALID';
+      return result;
+    }
+
+    // Step 2 — parse the E2 TID header (first 32 bits, EPC TDS bit numbering).
+    result.xtid = ((bytes[1] >> 7) & 1) === 1; // bit 8
+    result.security = ((bytes[1] >> 6) & 1) === 1; // bit 9
+    result.file = ((bytes[1] >> 5) & 1) === 1; // bit 10
+    result.xtidSupported = result.xtid ? 'Yes' : 'No';
+
+    const mdid = ((bytes[1] & 0x1f) << 4) | ((bytes[2] >> 4) & 0x0f); // bits 11..19
+    const tmn = ((bytes[2] & 0x0f) << 8) | bytes[3]; // bits 20..31
+    result.mdid = mdid;
+    result.tmn = tmn;
+
+    // Steps 3-4 — resolve fields.
+    const byPrefix = findByPrefix(cleanHex);
+    const byMdidTmn = byPrefix ? null : findByMdidTmn(mdid, tmn);
+    const row = byPrefix || byMdidTmn;
+
+    if (row) {
+      result.vendor = row.vendor ?? MDID_VENDORS[mdid] ?? 'Unknown';
+      result.tagModel = row.model ?? 'Unknown';
+      result.tagFamily = row.family ?? 'Unknown';
+      result.tagClass = row.tagClass ?? DEFAULT_TAG_CLASS;
+      result.modelNotes = row.modelNotes ?? '';
+      result.matchMethod = byPrefix ? 'prefix' : 'mdid_tmn';
+      result.isValid = true;
+    } else if (MDID_VENDORS[mdid]) {
+      result.vendor = MDID_VENDORS[mdid];
+      result.tagModel = `Unknown (${tmn.toString(16).toUpperCase().padStart(3, '0')})`;
+      result.tagFamily = 'Unknown';
+      result.modelNotes = '';
+      result.matchMethod = 'mdid';
+      result.isValid = true;
+    } else {
+      // Header parsed but no vendor known for this MDID.
+      result.matchMethod = 'none';
+      result.isValid = true;
+    }
+
+    return result;
   } catch (err) {
     result.errorMessage = `TID parsing error: ${err.message}`;
+    result.errorCode = 'TID_ERROR';
+    return result;
   }
-
-  return result;
 }
