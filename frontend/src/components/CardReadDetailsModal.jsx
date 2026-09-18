@@ -1,9 +1,37 @@
+import { useState } from 'react';
 import { formatSingaporeDateTime } from '../utils/dateTime';
 
 const fmt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 const mono = { fontFamily: 'monospace', wordBreak: 'break-all' };
 
+// Rebuild the pasteable "Client Data" dump in the exact format the Card Copy
+// Program's Client Data field / parser expects. Falls back to the original raw
+// payload if the structured fields are somehow empty.
+function buildClientData(r) {
+  const lines = [];
+  if (r.order_id) lines.push(`Order ID: ${r.order_id}`);
+  if (r.data_a) lines.push(`Data A: ${r.data_a}`);
+  if (r.data_b) lines.push(`Data B: ${r.data_b}`);
+  if (r.data_c) lines.push(`Data C: ${r.data_c}`);
+  if (r.data_d) lines.push(`Data D: ${r.data_d}`);
+  if (r.data_e) lines.push(`Data E: ${r.data_e}`);
+  return lines.join('\n') || (r.raw_text ?? '');
+}
+
 export default function CardReadDetailsModal({ request, onClose }) {
+  const clientData = buildClientData(request);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(clientData);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-wide">
@@ -13,7 +41,26 @@ export default function CardReadDetailsModal({ request, onClose }) {
         </div>
 
         <div className="modal-body">
-          <div className="detail-grid">
+          <div className="form-group">
+            <label>Client Data (paste into Card Copy Program)</label>
+            <textarea
+              rows={7}
+              value={clientData}
+              readOnly
+              style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              className="btn btn-primary"
+              style={{ marginTop: 8, alignSelf: 'flex-start' }}
+              onClick={handleCopy}
+              disabled={!clientData}
+            >
+              {copied ? 'Copied!' : 'Copy Client Data'}
+            </button>
+          </div>
+
+          <div className="detail-grid" style={{ marginTop: 16 }}>
             <span className="detail-label">Received</span>
             <span className="detail-value">{formatSingaporeDateTime(request.created_at)}</span>
 

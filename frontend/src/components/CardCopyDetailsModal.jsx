@@ -4,7 +4,21 @@ import { formatSingaporeDateTime } from '../utils/dateTime';
 
 const fmt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 
+// Rebuild the pasteable "Client Data" dump in the format the Card Copy Program
+// Client Data field / parser expects.
+function buildClientData(o) {
+  const lines = [];
+  if (o.order_id) lines.push(`Order ID: ${o.order_id}`);
+  if (o.data_a) lines.push(`Data A: ${o.data_a}`);
+  if (o.data_b) lines.push(`Data B: ${o.data_b}`);
+  if (o.data_c) lines.push(`Data C: ${o.data_c}`);
+  if (o.data_d) lines.push(`Data D: ${o.data_d}`);
+  if (o.data_e) lines.push(`Data E: ${o.data_e}`);
+  return lines.join('\n');
+}
+
 export default function CardCopyDetailsModal({ order, onClose, onSaved, showToast }) {
+  const clientData = buildClientData(order);
   const [remark, setRemark] = useState(order.remark ?? '');
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -45,6 +59,15 @@ export default function CardCopyDetailsModal({ order, onClose, onSaved, showToas
     }
   };
 
+  const handleCopyClientData = async () => {
+    try {
+      await navigator.clipboard.writeText(clientData);
+      showToast?.('Client data copied to clipboard.');
+    } catch {
+      showToast?.('Failed to copy.', 'error');
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-wide">
@@ -54,7 +77,26 @@ export default function CardCopyDetailsModal({ order, onClose, onSaved, showToas
         </div>
 
         <div className="modal-body">
-          <div className="detail-grid">
+          <div className="form-group">
+            <label>Client Data (paste into Card Copy Program)</label>
+            <textarea
+              rows={7}
+              value={clientData}
+              readOnly
+              style={{ fontFamily: 'monospace', fontSize: '0.82rem' }}
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              className="btn btn-secondary"
+              style={{ marginTop: 8, alignSelf: 'flex-start' }}
+              onClick={handleCopyClientData}
+              disabled={!clientData}
+            >
+              Copy Client Data
+            </button>
+          </div>
+
+          <div className="detail-grid" style={{ marginTop: 16 }}>
             <span className="detail-label">Order ID</span>
             <span className="detail-value">{fmt(order.order_id)}</span>
 

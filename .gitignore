@@ -17,3 +17,8 @@ frontend/claude-logs/notification.json
 frontend/claude-logs/post_tool_use.json
 frontend/claude-logs/pre_tool_use.json
 frontend/claude-logs/stop.json
+frontend/claude-logs/debug.json
+frontend/claude-logs/notification.json
+frontend/claude-logs/post_tool_use.json
+frontend/claude-logs/pre_tool_use.json
+frontend/claude-logs/stop.json
